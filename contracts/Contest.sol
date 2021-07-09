@@ -37,4 +37,5 @@ contract Contest {
 	function addContestant (string memory _name) private {
 		contestantsCount++;
 		contestants[contestantsCount] = Contestant(contestantsCount, _name, 0);
+	}
 }
