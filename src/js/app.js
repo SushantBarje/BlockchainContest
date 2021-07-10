@@ -21,8 +21,9 @@ App = {
    //  }
 
     if (window.ethereum) {
+    
       App.web3Provider = window.ethereum;
-      web3 = new Web3(window.ethereum);
+      web3 = new Web3(ethereum);
       //App.web3Provider = await window.ethereum.request({ method: 'eth_requestAccounts' });
     } else if (window.web3) {
         App.web3Provider = new Web3.providers.HttpProvider('http://localhost:7545');
@@ -39,11 +40,24 @@ App = {
       //Instantiate a new truffle contract from artifact
       App.contracts.Contest = TruffleContract(contest);
       // Connect provider to interact with contract
-        App.contracts.Contest.setProvider(App.web3Provider);
+      App.contracts.Contest.setProvider(App.web3Provider);
       //console.log(App.contracts.Contest.setProvider(App.web3Provider));
+      App.listenForEvent();
       return App.render();
     });
     
+  },
+
+  listenForEvent: function(){
+    App.contracts.Contest.deployed().then(function(instance) {
+      instance.votedEvent({}, {
+        fromBlock: 0,
+        toBlock: 'latest'
+      }).watch(function(error, event) {
+        console.log("event triggered", event)
+        App.render();
+      })
+    })
   },
 
 render: function(){
@@ -61,13 +75,16 @@ render: function(){
         $("#accountAddress").html("Your Account: " + account);
       }
     });
-    console.log(App.contracts);
+    
     App.contracts.Contest.deployed().then(function(instance){
       contestInstance = instance;
       return contestInstance.contestantsCount();
     }).then(function (contestantsCount){
       var contestantsResults = $("#contestantsResults");
       contestantsResults.empty(); 
+
+      var contestantsSelect = $("#contestantsSelect");
+      contestantsSelect.empty(); 
 
       for(var i = 1; i <= contestantsCount; i++){
         contestInstance.contestants(i).then(function(contestant) {
@@ -77,6 +94,9 @@ render: function(){
 
           var contestantTemplate = "<tr><td>"+id+"</td><td>"+name+"</td><td>"+voteCount+"</td></tr>";
           contestantsResults.append(contestantTemplate);
+
+          var contestantOption = "<option value=" + id + ">" + name + "</option>";
+          contestantsSelect.append(contestantOption);
         });
       }
 
@@ -85,8 +105,19 @@ render: function(){
     }).catch(function(error) {
       console.warn(error);
     });
-  }
+  },
 
+  castVote: function(){
+    var contestantId = $("#contestantsSelect").val();
+    App.contracts.Contest.deployed().then(function(instance) {
+      return instance.vote(contestantId, {from : App.account});
+    }).then(function (result) {
+      $("#content").hide();
+      $("#loader").show();
+    }).catch(function(err) {
+      console.error(err);
+    });
+  }
 };
 
 $(function() {
