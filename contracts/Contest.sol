@@ -22,6 +22,8 @@ contract Contest {
 	 * */
 	mapping(uint => Contestant) public contestants;
 
+	//to save the list of voters already voted.
+	mapping(address => bool) public voters;
 	/**
 	* 	Public state variable to keep track of contestant count
 	* 	in other language we can find the length of contestants by len(contestants)
@@ -31,11 +33,31 @@ contract Contest {
 	* */
 	uint public contestantsCount;
 
+	event votedEvent(
+		uint indexed _contestantId
+	);
+
 	/**
 	 * Function to add Contestant
 	 * */
 	function addContestant (string memory _name) private {
 		contestantsCount++;
 		contestants[contestantsCount] = Contestant(contestantsCount, _name, 0);
+	}
+
+
+	function vote(uint _contestantId) public {
+
+		require(!voters[msg.sender]);
+
+		require(_contestantId > 0 && _contestantId <= contestantsCount);
+
+		//increase the vote count of particular contestant
+		contestants[_contestantId].voteCount++;
+
+		//set the voter voted status to true.
+		voters[msg.sender] = true;
+
+		emit votedEvent(_contestantId);
 	}
 }
